@@ -1,17 +1,14 @@
 "use client"
-
-/**
- * Home Page - Entry point for the 3D Architecture Tour application
- * COSC3306 Final Course Project
- *
- * Uses dynamic import to load the 3D scene component client-side only,
- * as Three.js requires browser APIs not available during server-side rendering.
+// client component as page depends on browser only features.
+/*
+ * we're using dynamic import to make sure the 3d scene is only loaded on client side.
+ * sinec three.js depends on browser api that dont work on server side
  */
 
 import dynamic from "next/dynamic"
 
-// Dynamically import Scene3D with SSR disabled
-// This prevents Three.js from running on the server
+// import scene3d and ssr turned off
+// makes sure three.js logic runs only in the browser not on server
 const Scene3D = dynamic(() => import("@/components/scene-3d"), {
   ssr: false,
   loading: () => (
@@ -19,9 +16,9 @@ const Scene3D = dynamic(() => import("@/components/scene-3d"), {
   ),
 })
 
-/**
- * Home - Main page component
- * Renders the full-screen 3D architecture visualization
+/*
+Home - Main page component
+Renders the full-screen 3D architecture visualization
  */
 export default function Home() {
   return (

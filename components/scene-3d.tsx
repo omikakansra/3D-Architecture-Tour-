@@ -1,36 +1,17 @@
 /**
- * 3D Architecture Tour - Interactive Room Visualization
- * COSC3306 Final Course Project
- *
- * This component creates an interactive 3D scene featuring two rooms
- * (Living Room and Bedroom) with furniture, lighting, and animations.
- *
- * Features:
- * - Two distinct rooms connected by a doorway
- * - Animated ceiling fan and swinging door
- * - Multiple materials (wood, fabric, metal, glass)
- * - Smooth camera transitions between room views
- * - Collision detection to prevent camera from going through walls
- * - Interactive light toggles
- * - Dynamic shadows
- *
- * Controls:
- * - Left Mouse: Rotate view
- * - Right Mouse: Pan view
- * - Scroll: Zoom in/out
- * - Click lights to toggle on/off
+ * This file is where I built the main 3D environment for the project.
+ * I used React Three Fiber to create two connected rooms and added
+ * animations, lighting, camera controls, and interactive elements.
  */
 
 "use client"
-
+// importing core react hooks and three.js utilities
 import { useRef, useState, Suspense, createContext, useContext } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, ContactShadows } from "@react-three/drei"
 import * as THREE from "three"
 
-// ============================================================================
-// CONTEXT FOR INTERACTIVE LIGHTING
-// ============================================================================
+//This interface defines what data and functions we want to share accross components for controlling the room lights
 
 interface LightContextType {
   livingRoomLight: boolean
@@ -38,7 +19,7 @@ interface LightContextType {
   toggleLivingRoomLight: () => void
   toggleBedroomLight: () => void
 }
-
+// creating global context so we can easily  control lights from diff component without passing props everywhere
 const LightContext = createContext<LightContextType>({
   livingRoomLight: true,
   bedroomLight: true,
@@ -46,32 +27,28 @@ const LightContext = createContext<LightContextType>({
   toggleBedroomLight: () => {},
 })
 
-// ============================================================================
-// MATERIALS - Reusable material components for consistent appearance
-// ============================================================================
+// Reusable materials
 
-// Wall material - light beige with matte finish
+// Wall material - plain light walls
 const WallMaterial = () => <meshStandardMaterial color="#e8dcc8" roughness={0.95} metalness={0} />
 
-// Floor material - warm wooden tone
+// Floor material - wooden looking floor
 const FloorMaterial = () => <meshStandardMaterial color="#b8860b" roughness={0.6} metalness={0.05} />
 
-// Ceiling material - off-white matte finish
+// Ceiling material - off-white ceiliing
 const CeilingMaterial = () => <meshStandardMaterial color="#faf8f5" roughness={1} metalness={0} />
 
 // Dark wood material - for furniture
 const DarkWoodMaterial = () => <meshStandardMaterial color="#3d2314" roughness={0.4} metalness={0.1} />
 
-// Blue fabric material - for sofa
+// Blue fabric material - for sofa and bed
 const BlueFabricMaterial = () => <meshStandardMaterial color="#2c5aa0" roughness={0.85} metalness={0} />
 
-// Purple fabric material - for bedding
 const PurpleFabricMaterial = () => <meshStandardMaterial color="#5c3d6e" roughness={0.85} metalness={0} />
 
-// Gray fabric material - for cushions and pillows
 const GrayFabricMaterial = () => <meshStandardMaterial color="#a8a8a8" roughness={0.9} metalness={0} />
 
-// Lamp shade material - emissive for glow effect
+// Lamp material when the light is turned on
 const LampShadeMaterial = ({ isOn = true }: { isOn?: boolean }) => (
   <meshStandardMaterial
     color="#fffbe6"
@@ -83,7 +60,7 @@ const LampShadeMaterial = ({ isOn = true }: { isOn?: boolean }) => (
   />
 )
 
-// Metal material - for lamp stands and hardware
+// Metal material for handles and lamp stands
 const MetalMaterial = () => <meshStandardMaterial color="#8b7355" roughness={0.25} metalness={0.9} />
 
 // Glass material - for windows
@@ -91,22 +68,19 @@ const GlassMaterial = () => (
   <meshStandardMaterial color="#a8d4e6" roughness={0.1} metalness={0.1} transparent opacity={0.3} />
 )
 
-// Orange rug material
+// Orange carpet
 const OrangeRugMaterial = () => <meshStandardMaterial color="#d4530e" roughness={0.9} metalness={0} />
 
-// ============================================================================
-// ANIMATED COMPONENTS
-// ============================================================================
 
 /**
- * CeilingFan - Animated rotating ceiling fan with light
+ * CeilingFan - Animated rotating ceiling fan with lights
  * Uses useFrame hook for continuous rotation animation
  */
 function CeilingFan({ position }: { position: [number, number, number] }) {
   const bladesRef = useRef<THREE.Group>(null)
   const { livingRoomLight } = useContext(LightContext)
 
-  // Rotate fan blades using delta time for frame-rate independence
+  // rotating the fan blades every frame so it appears spinning
   useFrame((_, delta) => {
     if (bladesRef.current) {
       bladesRef.current.rotation.y += delta * 3
@@ -115,19 +89,19 @@ function CeilingFan({ position }: { position: [number, number, number] }) {
 
   return (
     <group position={position}>
-      {/* Motor housing mount */}
+      {/* Motor housing part of the fan */}
       <mesh position={[0, 0.5, 0]} castShadow>
         <cylinderGeometry args={[0.12, 0.15, 0.15, 16]} />
         <MetalMaterial />
       </mesh>
 
-      {/* Support rod */}
+      {/* rod holding the fan */}
       <mesh position={[0, 0.3, 0]} castShadow>
         <cylinderGeometry args={[0.025, 0.025, 0.4, 8]} />
         <MetalMaterial />
       </mesh>
 
-      {/* Motor body */}
+      {/* main motor body */}
       <mesh castShadow>
         <cylinderGeometry args={[0.2, 0.18, 0.25, 24]} />
         <MetalMaterial />
@@ -142,7 +116,7 @@ function CeilingFan({ position }: { position: [number, number, number] }) {
               <boxGeometry args={[0.6, 0.02, 0.08]} />
               <MetalMaterial />
             </mesh>
-            {/* Fan blade */}
+            {/* actual fan blade */}
             <mesh position={[0.95, -0.02, 0]} rotation={[0.05, 0, 0]} castShadow>
               <boxGeometry args={[0.7, 0.015, 0.18]} />
               <DarkWoodMaterial />
@@ -151,13 +125,13 @@ function CeilingFan({ position }: { position: [number, number, number] }) {
         ))}
       </group>
 
-      {/* Light globe */}
+      {/* Light globe under the fan  */}
       <mesh position={[0, -0.25, 0]}>
         <sphereGeometry args={[0.12, 16, 16]} />
         <LampShadeMaterial isOn={livingRoomLight} />
       </mesh>
 
-      {/* Point light - intensity controlled by context */}
+      {/* Actual light source of the fan */}
       <pointLight
         position={[0, -0.3, 0]}
         color="#fff5e0"
@@ -174,10 +148,10 @@ function CeilingFan({ position }: { position: [number, number, number] }) {
  * Uses sinusoidal motion for smooth oscillation
  */
 function SwingingDoor({ position }: { position: [number, number, number] }) {
-  const doorRef = useRef<THREE.Group>(null)
-  const timeRef = useRef(0)
+  const doorRef = useRef<THREE.Group>(null) // reference to the whole door so we can rotate ir during animation
+  const timeRef = useRef(0) // this ref keeps track of time manually so it looks smooth
 
-  // Animate door swing using sin function
+  // Animate door swing using sine function to create a natural back and forth motion
   useFrame((_, delta) => {
     if (doorRef.current) {
       timeRef.current += delta
@@ -187,13 +161,13 @@ function SwingingDoor({ position }: { position: [number, number, number] }) {
 
   return (
     <group ref={doorRef} position={position}>
-      {/* Door panel */}
+      {/* Door panel made using nox geometry*/}
       <mesh position={[0, 0, -0.4]} castShadow>
         <boxGeometry args={[0.08, 2.6, 0.8]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Door handle */}
+      {/* Door handle made using a cylinder geometry */}
       <mesh position={[0.05, 0, -0.1]} castShadow>
         <cylinderGeometry args={[0.02, 0.02, 0.12, 8]} />
         <MetalMaterial />
@@ -202,41 +176,36 @@ function SwingingDoor({ position }: { position: [number, number, number] }) {
   )
 }
 
-// ============================================================================
-// FURNITURE COMPONENTS
-// ============================================================================
-
 /**
  * Sofa - Living room sofa with cushions and throw pillows
  */
 function Sofa({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* Base frame */}
+      {/* Wooden baseframe of sofa */}
       <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
         <boxGeometry args={[3.2, 0.15, 1.3]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Seat cushion */}
+      {/* main seat cushion */}
       <mesh position={[0, 0.4, 0.05]} castShadow receiveShadow>
         <boxGeometry args={[2.9, 0.35, 1.1]} />
         <BlueFabricMaterial />
       </mesh>
 
-      {/* Back cushion */}
+      {/* back cushion */}
       <mesh position={[0, 0.75, -0.4]} castShadow receiveShadow>
         <boxGeometry args={[2.9, 0.6, 0.35]} />
         <BlueFabricMaterial />
       </mesh>
 
-      {/* Left armrest */}
+      {/* Armrest */}
       <mesh position={[-1.45, 0.45, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.25, 0.45, 1.2]} />
         <BlueFabricMaterial />
       </mesh>
 
-      {/* Right armrest */}
       <mesh position={[1.45, 0.45, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.25, 0.45, 1.2]} />
         <BlueFabricMaterial />
@@ -258,24 +227,24 @@ function Sofa({ position }: { position: [number, number, number] }) {
 }
 
 /**
- * CoffeeTable - Two-tier coffee table
+ * CoffeeTable
  */
 function CoffeeTable({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* Top surface */}
+      {/* coffee table parts */}
       <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.8, 0.08, 0.9]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Lower shelf */}
+
       <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.6, 0.05, 0.7]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Table legs */}
+      {/* 4 table legs */}
       {[
         [-0.8, -0.35],
         [0.8, -0.35],
@@ -292,7 +261,7 @@ function CoffeeTable({ position }: { position: [number, number, number] }) {
 }
 
 /**
- * DiningTable - Four-legged dining table
+ * DiningTable with 4 legs
  */
 function DiningTable({ position }: { position: [number, number, number] }) {
   return (
@@ -366,8 +335,9 @@ function FloorLamp({ position }: { position: [number, number, number] }) {
   const { livingRoomLight } = useContext(LightContext)
 
   return (
+      // grouping all lamp parts
     <group position={position}>
-      {/* Base */}
+      {/* Circular base */}
       <mesh position={[0, 0.03, 0]} castShadow>
         <cylinderGeometry args={[0.22, 0.25, 0.06, 24]} />
         <MetalMaterial />
@@ -385,7 +355,7 @@ function FloorLamp({ position }: { position: [number, number, number] }) {
         <LampShadeMaterial isOn={livingRoomLight} />
       </mesh>
 
-      {/* Light source */}
+      {/* Point light stimulates the actual light coming from the lamp  */}
       <pointLight
         position={[0, 1.85, 0]}
         color="#fff5e0"
@@ -402,20 +372,21 @@ function FloorLamp({ position }: { position: [number, number, number] }) {
  */
 function Bed({ position }: { position: [number, number, number] }) {
   return (
+      // grouping the entire bed and positioning inside the bedroom
     <group position={position}>
-      {/* Bed frame base */}
+      {/* Bed wooden frame  */}
       <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
         <boxGeometry args={[2.4, 0.2, 2.8]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Mattress */}
+      {/* Mattress on top of bed frame  */}
       <mesh position={[0, 0.45, 0.05]} castShadow receiveShadow>
         <boxGeometry args={[2.2, 0.3, 2.6]} />
         <meshStandardMaterial color="#f5f5f5" roughness={0.9} />
       </mesh>
 
-      {/* Comforter/bedding */}
+      {/* Comforter for realistic look  */}
       <mesh position={[0, 0.62, 0.4]} castShadow receiveShadow>
         <boxGeometry args={[2.15, 0.08, 1.9]} />
         <PurpleFabricMaterial />
@@ -450,19 +421,19 @@ function Nightstand({ position }: { position: [number, number, number] }) {
 
   return (
     <group position={position}>
-      {/* Main cabinet body */}
+      {/* Main wooden cabinet body */}
       <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.55, 0.55, 0.45]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Drawer front */}
+      {/* front face of drawer */}
       <mesh position={[0, 0.25, 0.23]} castShadow>
         <boxGeometry args={[0.48, 0.18, 0.02]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Drawer handle */}
+      {/* handle for drawer */}
       <mesh position={[0, 0.25, 0.26]} castShadow>
         <boxGeometry args={[0.12, 0.02, 0.02]} />
         <MetalMaterial />
@@ -504,25 +475,23 @@ function Wardrobe({ position, rotation = 0 }: { position: [number, number, numbe
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Left door panel */}
+      {/* door panels */}
       <mesh position={[-0.35, 1.1, 0.28]} castShadow>
         <boxGeometry args={[0.68, 2.1, 0.03]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Right door panel */}
       <mesh position={[0.35, 1.1, 0.28]} castShadow>
         <boxGeometry args={[0.68, 2.1, 0.03]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Left handle */}
+      {/* handles */}
       <mesh position={[-0.1, 1.1, 0.31]} castShadow>
         <boxGeometry args={[0.02, 0.15, 0.02]} />
         <MetalMaterial />
       </mesh>
 
-      {/* Right handle */}
       <mesh position={[0.1, 1.1, 0.31]} castShadow>
         <boxGeometry args={[0.02, 0.15, 0.02]} />
         <MetalMaterial />
@@ -532,7 +501,7 @@ function Wardrobe({ position, rotation = 0 }: { position: [number, number, numbe
 }
 
 /**
- * Bookshelf - Decorative bookshelf for the living room
+ * Bookshelf for the living room
  */
 function Bookshelf({ position }: { position: [number, number, number] }) {
   return (
@@ -561,7 +530,7 @@ function Bookshelf({ position }: { position: [number, number, number] }) {
         <DarkWoodMaterial />
       </mesh>
 
-      {/* Decorative books */}
+      {/* Books */}
       <mesh position={[-0.3, 0.35, 0.15]} castShadow>
         <boxGeometry args={[0.4, 0.3, 0.22]} />
         <meshStandardMaterial color="#8B4513" roughness={0.8} />
@@ -584,19 +553,19 @@ function Bookshelf({ position }: { position: [number, number, number] }) {
 function TVStand({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
-      {/* Cabinet base */}
+      {/* cabinet base which holds the TV */}
       <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[2, 0.6, 0.5]} />
         <DarkWoodMaterial />
       </mesh>
 
-      {/* TV screen */}
+      {/* screen of TV */}
       <mesh position={[0, 1.1, 0.1]} castShadow>
         <boxGeometry args={[1.8, 1, 0.08]} />
         <meshStandardMaterial color="#111111" roughness={0.2} metalness={0.5} />
       </mesh>
 
-      {/* TV frame */}
+      {/* farme of tv with border  */}
       <mesh position={[0, 1.1, 0.05]} castShadow>
         <boxGeometry args={[1.9, 1.1, 0.05]} />
         <meshStandardMaterial color="#222222" roughness={0.3} metalness={0.7} />
@@ -604,10 +573,6 @@ function TVStand({ position }: { position: [number, number, number] }) {
     </group>
   )
 }
-
-// ============================================================================
-// CAMERA CONTROL COMPONENTS
-// ============================================================================
 
 /**
  * CameraController - Handles smooth camera transitions between preset views
@@ -617,21 +582,21 @@ function CameraController({
   targetPosition,
   targetLookAt,
 }: { targetPosition: THREE.Vector3; targetLookAt: THREE.Vector3 }) {
-  const { camera } = useThree()
-  const controlsRef = useRef<any>(null)
+  const { camera } = useThree() // camera access three.js
+  const controlsRef = useRef<any>(null) // refrence for teh orbit so we can manually upadte the target
 
   useFrame(() => {
-    // Smoothly interpolate camera position
+    // moving the camera from iss current position towards the target position
     camera.position.lerp(targetPosition, 0.02)
 
-    // Update OrbitControls target for look-at point
-    if (controlsRef.current) {
+    // Update the point that the camera is looking at
       controlsRef.current.target.lerp(targetLookAt, 0.02)
       controlsRef.current.update()
     }
-  })
+)
 
   return (
+      // orbit allows mouse interation and camera orbiting
     <OrbitControls
       ref={controlsRef}
       enableDamping
@@ -648,6 +613,7 @@ function CameraController({
  * Prevents camera from passing through walls, floor, and ceiling
  */
 function useCollisionBounds() {
+    // difining the boundries of thr room
   const bounds = {
     minX: -9.8,
     maxX: 9.8,
@@ -655,20 +621,22 @@ function useCollisionBounds() {
     maxZ: 3.8,
     minY: 0.5,
     maxY: 3.8,
+    // center wall that seperates the room
     centerWallX: 0,
+    // doorway gap in the wall
     doorwayMinZ: -1.2,
     doorwayMaxZ: 1.2,
   }
-
+// camera never leaves the room so clamping it
   const clampPosition = (pos: THREE.Vector3): THREE.Vector3 => {
     const clamped = pos.clone()
 
-    // Clamp to room boundaries
+    // lock the camera inside the outer room
     clamped.x = Math.max(bounds.minX, Math.min(bounds.maxX, clamped.x))
     clamped.y = Math.max(bounds.minY, Math.min(bounds.maxY, clamped.y))
     clamped.z = Math.max(bounds.minZ, Math.min(bounds.maxZ, clamped.z))
 
-    // Handle center wall collision (allow passage through doorway)
+    // Handling collison with the wall in center
     if (Math.abs(clamped.x) < 0.5) {
       if (clamped.z < bounds.doorwayMinZ || clamped.z > bounds.doorwayMaxZ) {
         clamped.x = pos.x > 0 ? 0.5 : -0.5
@@ -680,10 +648,6 @@ function useCollisionBounds() {
 
   return { bounds, clampPosition }
 }
-
-// ============================================================================
-// MAIN SCENE COMPONENT
-// ============================================================================
 
 /**
  * Scene - Main 3D scene containing all room geometry, furniture, and lighting
@@ -700,58 +664,50 @@ function Scene({ cameraTarget, lookAtTarget }: { cameraTarget: THREE.Vector3; lo
     }
   })
 
-  // Room dimensions
+  // dimensions of the room
   const roomWidth = 10
   const roomDepth = 8
   const roomHeight = 4
 
   return (
     <>
-      {/* ==================== LIGHTING ==================== */}
-
-      {/* Ambient light - general scene illumination */}
+      {/*lighting*/}
       <ambientLight intensity={0.8} />
-
-      {/* Main directional light - sun-like lighting with shadows */}
       <directionalLight position={[5, 12, 8]} intensity={2.0} castShadow shadow-mapSize={[2048, 2048]} />
-
-      {/* Window lights - simulating natural light from windows */}
       <spotLight position={[-12, 3, 0]} angle={0.6} penumbra={0.5} intensity={2.5} color="#b4d7ff" />
       <spotLight position={[12, 3, 0]} angle={0.6} penumbra={0.5} intensity={2.5} color="#b4d7ff" />
 
-      {/* ==================== FLOOR ==================== */}
+      {/* floor */}
       <mesh position={[0, 0, 0]} receiveShadow>
         <boxGeometry args={[roomWidth * 2 + 0.2, 0.1, roomDepth]} />
         <FloorMaterial />
       </mesh>
 
-      {/* ==================== CEILING ==================== */}
+      {/* ceiling */}
       <mesh position={[0, roomHeight, 0]}>
         <boxGeometry args={[roomWidth * 2 + 0.2, 0.1, roomDepth]} />
         <CeilingMaterial />
       </mesh>
 
-      {/* ==================== WALLS ==================== */}
+      {/* walls */}
 
-      {/* Back wall - spans both rooms */}
+      {/* back wall */}
       <mesh position={[0, roomHeight / 2, -roomDepth / 2]} receiveShadow>
         <boxGeometry args={[roomWidth * 2 + 0.2, roomHeight, 0.2]} />
         <WallMaterial />
       </mesh>
 
-      {/* Front wall - left section */}
+      {/* Front wall */}
       <mesh position={[-roomWidth * 0.75, roomHeight / 2, roomDepth / 2]} receiveShadow>
         <boxGeometry args={[roomWidth / 2, roomHeight, 0.2]} />
         <WallMaterial />
       </mesh>
-
-      {/* Front wall - right section */}
       <mesh position={[roomWidth * 0.75, roomHeight / 2, roomDepth / 2]} receiveShadow>
         <boxGeometry args={[roomWidth / 2, roomHeight, 0.2]} />
         <WallMaterial />
       </mesh>
 
-      {/* ==================== LEFT WALL WITH WINDOW ==================== */}
+      {/* wondow left wall */}
 
       {/* Bottom section */}
       <mesh position={[-roomWidth, roomHeight * 0.15, 0]} receiveShadow>
@@ -759,91 +715,79 @@ function Scene({ cameraTarget, lookAtTarget }: { cameraTarget: THREE.Vector3; lo
         <WallMaterial />
       </mesh>
 
-      {/* Top section */}
       <mesh position={[-roomWidth, roomHeight * 0.85, 0]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.3, roomDepth]} />
         <WallMaterial />
       </mesh>
 
-      {/* Left of window */}
       <mesh position={[-roomWidth, roomHeight / 2, -roomDepth * 0.35]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.4, roomDepth * 0.3]} />
         <WallMaterial />
       </mesh>
 
-      {/* Right of window */}
       <mesh position={[-roomWidth, roomHeight / 2, roomDepth * 0.35]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.4, roomDepth * 0.3]} />
         <WallMaterial />
       </mesh>
 
-      {/* Window glass */}
       <mesh position={[-roomWidth + 0.05, roomHeight / 2, 0]}>
         <boxGeometry args={[0.02, roomHeight * 0.4, roomDepth * 0.4]} />
         <GlassMaterial />
       </mesh>
 
-      {/* ==================== RIGHT WALL WITH WINDOW ==================== */}
+      {/* right wall window  */}
 
-      {/* Bottom section */}
       <mesh position={[roomWidth, roomHeight * 0.15, 0]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.3, roomDepth]} />
         <WallMaterial />
       </mesh>
 
-      {/* Top section */}
       <mesh position={[roomWidth, roomHeight * 0.85, 0]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.3, roomDepth]} />
         <WallMaterial />
       </mesh>
 
-      {/* Left of window */}
       <mesh position={[roomWidth, roomHeight / 2, -roomDepth * 0.35]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.4, roomDepth * 0.3]} />
         <WallMaterial />
       </mesh>
 
-      {/* Right of window */}
       <mesh position={[roomWidth, roomHeight / 2, roomDepth * 0.35]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.4, roomDepth * 0.3]} />
         <WallMaterial />
       </mesh>
 
-      {/* Window glass */}
       <mesh position={[roomWidth - 0.05, roomHeight / 2, 0]}>
         <boxGeometry args={[0.02, roomHeight * 0.4, roomDepth * 0.4]} />
         <GlassMaterial />
       </mesh>
 
-      {/* ==================== CENTER DIVIDER WALL ==================== */}
+      {/* center wall divider */}
 
-      {/* Left of doorway */}
       <mesh position={[0, roomHeight / 2, -roomDepth * 0.325]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight, roomDepth * 0.35]} />
         <WallMaterial />
       </mesh>
 
-      {/* Right of doorway */}
       <mesh position={[0, roomHeight / 2, roomDepth * 0.325]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight, roomDepth * 0.35]} />
         <WallMaterial />
       </mesh>
 
-      {/* Above doorway */}
       <mesh position={[0, roomHeight * 0.875, 0]} receiveShadow>
         <boxGeometry args={[0.2, roomHeight * 0.25, roomDepth * 0.3]} />
         <WallMaterial />
       </mesh>
 
-      {/* ==================== ANIMATED ELEMENTS ==================== */}
+      {/* animated elements */}
 
-      {/* Swinging door in doorway */}
+      {/* door b/w walls */}
       <SwingingDoor position={[0, 1.3, 0.4]} />
 
-      {/* Ceiling fan in living room */}
+      {/* fan in living room  */}
       <CeilingFan position={[-5, roomHeight - 0.1, 0]} />
 
-      {/* ==================== LIVING ROOM FURNITURE ==================== */}
+      {/* furniture- living room  */}
 
       <Sofa position={[-5.5, 0, -2.2]} />
       <CoffeeTable position={[-5.5, 0, 0]} />
@@ -856,38 +800,34 @@ function Scene({ cameraTarget, lookAtTarget }: { cameraTarget: THREE.Vector3; lo
       <Bookshelf position={[-8.5, 0, -3.5]} />
       <TVStand position={[-7.5, 0, 3.5]} />
 
-      {/* Living room rug under sofa */}
+      {/* The rug in living room  */}
       <mesh position={[-5.5, 0.06, -2]} receiveShadow>
         <boxGeometry args={[5, 0.1, 4]} />
         <OrangeRugMaterial />
       </mesh>
 
-      {/* ==================== BEDROOM FURNITURE ==================== */}
+      {/* Furniture- Bedroom  */}
 
       <Bed position={[6, 0, -1.5]} />
       <Nightstand position={[7.8, 0, -3.2]} />
       <Wardrobe position={[4, 0, -3.3]} rotation={0} />
 
-      {/* Bedroom rug */}
+      {/* rug in bedroom */}
       <mesh position={[6, 0.06, 1]} receiveShadow>
         <boxGeometry args={[3, 0.1, 2.5]} />
         <OrangeRugMaterial />
       </mesh>
 
-      {/* ==================== SHADOWS AND CAMERA ==================== */}
+      {/* shadow and camera */}
 
-      {/* Contact shadows for ground objects */}
       <ContactShadows position={[0, 0.01, 0]} opacity={0.4} scale={25} blur={2} far={4} />
 
-      {/* Camera controller for smooth transitions */}
       <CameraController targetPosition={cameraTarget} targetLookAt={lookAtTarget} />
     </>
   )
 }
 
-// ============================================================================
-// CAMERA PRESETS - Predefined views for navigation buttons
-// ============================================================================
+// Camera Preset
 
 const ROOM_VIEWS = {
   overview: {
@@ -908,16 +848,15 @@ const ROOM_VIEWS = {
   },
 }
 
-// ============================================================================
-// MAIN EXPORT COMPONENT
-// ============================================================================
-
 /**
- * Scene3D - Main exported component that sets up the Canvas and UI
- * Manages camera view state and light toggle state
+ * Scene3D - Main exported component that sets up the 3d env.
+ Handles
+ *1. camera view switching
+ *2. Light toggliing for living room and bedroom
+ *3. rendering the canvas
  */
 export default function Scene3D() {
-  // Camera view state
+  // current Camera view state
   const [currentView, setCurrentView] = useState<keyof typeof ROOM_VIEWS>("overview")
 
   // Light toggle states for interactivity
@@ -984,7 +923,7 @@ export default function Scene3D() {
           </div>
         </div>
 
-        {/* Navigation Buttons - Bottom Center */}
+        {/* Navigation Buttons, Bottom Center */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
           {(["overview", "livingRoom", "bedroom", "topDown"] as const).map((view) => (
             <button
